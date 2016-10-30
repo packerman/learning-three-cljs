@@ -63,10 +63,18 @@
           ambient-light (js/THREE.AmbientLight. 0x606060)
           stats (init-stats)
           step (atom 0)
+          controls (js-obj
+                        "rotationSpeed" 0.02
+                        "bouncingSpeed" 0.03)
+          gui (doto (js/dat.GUI.)
+                (.add controls "rotationSpeed" 0 0.5)
+                (.add controls "bouncingSpeed" 0 0.5))
           render-scene (fn render-scene []
                             (.update stats)
-                            (swap! step + 0.04)
-                            (change-rotation cube 0.02 0.02 0.02)
+                            (swap! step + (.-bouncingSpeed controls))
+                            (change-rotation cube (.-rotationSpeed controls)
+                                                  (.-rotationSpeed controls)
+                                                  (.-rotationSpeed controls))
                             (doto sphere
                                 (-> .-position .-x (set! (+ 20 (* 10 (js/Math.cos @step)))))
                                 (-> .-position .-y (set! (+ 2 (* 10 (js/Math.abs (js/Math.sin @step)))))))
