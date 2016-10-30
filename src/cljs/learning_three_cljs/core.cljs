@@ -79,7 +79,13 @@
                                 (-> .-position .-x (set! (+ 20 (* 10 (js/Math.cos @step)))))
                                 (-> .-position .-y (set! (+ 2 (* 10 (js/Math.abs (js/Math.sin @step)))))))
                             (js/requestAnimationFrame render-scene)
-                            (.render renderer scene camera))]
+                            (.render renderer scene camera))
+          on-resize (fn []
+                        (set! (.-aspect camera) (/ (.-innerWidth js/window)
+                                                   (.-innerHeight js/window)))
+                        (.updateProjectionMatrix camera)
+                        (.setSize renderer (.-innerWidth js/window) (.-innerHeight js/window)))]
+      (.addEventListener js/window "resize" on-resize false)
       (.lookAt camera (.-position scene))
       (.add scene
             axes
