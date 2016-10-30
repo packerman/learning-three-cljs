@@ -5,13 +5,13 @@
 (defn init []
   (letfn [(make-renderer []
             (doto (js/THREE.WebGLRenderer.)
-              (.setClearColor (js/THREE.Color. 0xEEEEEE))
+              (.setClearColor (js/THREE.Color. 0xeeeeee))
               (.setSize (.-innerWidth js/window) (.-innerHeight js/window))
               (-> .-shadowMap .-enabled (set! true))))
           (make-plane []
                       (doto (js/THREE.Mesh.
                              (js/THREE.PlaneGeometry. 60 20 1 1)
-                             (js/THREE.MeshLambertMaterial. (js-obj "color" 0xffffff)))
+                             (js/THREE.MeshLambertMaterial. (js-obj "color" 0xaaaaaa)))
                         (-> .-rotation (.set (* -0.5 js/Math.PI) 0 0))
                         (-> .-position (.set 15 0 0))
                         (-> .-receiveShadow (set! true))))
@@ -36,7 +36,22 @@
           (make-spot-light []
                            (doto (js/THREE.SpotLight. 0xffffff)
                              (-> .-position (.set -40 60 -10))
-                             (-> .-castShadow (set! true))))]
+                             (-> .-castShadow (set! true))
+                             (-> .-shadow .-mapSize .-width (set! 1024))
+                             (-> .-shadow .-mapSize .-height (set! 1024))))
+          (change-coords [object dx dy dz]
+              (.set object
+                    (+ (.-x object) dx)
+                    (+ (.-y object) dy)
+                    (+ (.-z object) dz)))
+          (change-rotation [node dx dy dz]
+              (change-coords (.-rotation node) dx dy dz))
+          (change-position [node dx dy dz]
+              (change-coords (.-position node) dx dy dz))
+          (init-stats []
+              (doto (js/Stats.)
+                (.setMode 0)
+                (->> .-domElement (.appendChild (.getElementById js/document "stats")))))]
     (let [scene (js/THREE.Scene.)
           camera (make-camera)
           renderer (make-renderer)
@@ -44,19 +59,29 @@
           plane (make-plane)
           cube (make-cube)
           sphere (make-sphere)
-          spot-light (make-spot-light)]
+          spot-light (make-spot-light)
+          ambient-light (js/THREE.AmbientLight. 0x606060)
+          stats (init-stats)
+          step (atom 0)
+          render-scene (fn render-scene []
+                            (.update stats)
+                            (swap! step + 0.04)
+                            (change-rotation cube 0.02 0.02 0.02)
+                            (doto sphere
+                                (-> .-position .-x (set! (+ 20 (* 10 (js/Math.cos @step)))))
+                                (-> .-position .-y (set! (+ 2 (* 10 (js/Math.abs (js/Math.sin @step)))))))
+                            (js/requestAnimationFrame render-scene)
+                            (.render renderer scene camera))]
       (.lookAt camera (.-position scene))
       (.add scene
             axes
             plane cube sphere
             camera
-            spot-light)
+            spot-light
+            ambient-light)
       (-> js/document
           (.getElementById "app")
           (.appendChild (.-domElement renderer)))
-      (.render renderer scene camera))))
+      (render-scene))))
 
 (set! (.-onload js/window) init)
-
-; (set! (.-innerHTML (js/document.getElementById "app"))
-;       "<h1>Hello Chestnut!</h1>")
